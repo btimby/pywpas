@@ -1,5 +1,5 @@
-.. image:: https://coveralls.io/repos/github/smartfile/pywpas/badge.svg?branch=master
-    :target: https://coveralls.io/github/smartfile/pywpas?branch=master
+.. image:: https://coveralls.io/repos/github/btimby/pywpas/badge.svg?branch=master
+    :target: https://coveralls.io/github/btimby/pywpas?branch=master
 
 .. image:: https://github.com/btimby/pywpas/actions/workflows/ci.yml/badge.svg
     :target: https://github.com/btimby/pywpas/actions
