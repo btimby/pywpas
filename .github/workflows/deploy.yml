@@ -23,7 +23,7 @@ jobs:
         uses: dschep/install-pipenv-action@v1
 
       - name: Install dependencies
-        run: pipenv install --dev --skip-lock
+        run: make deps
 
       - name: Build distribution
         run: pipenv run python setup.py sdist bdist_wheel
