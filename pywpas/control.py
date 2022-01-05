@@ -11,8 +11,7 @@ from functools import wraps
 from os.path import dirname, join as pathjoin
 from typing import List, Union
 
-from .const import STATUS_CONSTS
-from .models import InterfaceStatus, Network
+from .models import InterfaceStatus, Network, deserialize_networks
 
 
 LOGGER = logging.getLogger(__name__)
@@ -141,11 +140,10 @@ class Interface(object):
             cmd = cmd.encode('utf-8')
         except AttributeError:
             pass
-        LOGGER.debug('Sending %s to %s', cmd, self._server_path)
         if self._connection not in select([], [self._connection], [],
                                           self._send_timeout)[1]:
             raise TimeoutError()
-        LOGGER.debug('sending >> %b', cmd)
+        LOGGER.debug('sending(%s) >> %s', self.name, cmd)
         self._connection.send(cmd)
 
     def _recv(self) -> str:
@@ -159,8 +157,8 @@ class Interface(object):
             raise TimeoutError()
         data = self._connection.recv(RECV_BUFFER_SIZE)
         data = data.strip()
-        LOGGER.debug('received << %b', data)
-        return data.decode('utf-8')
+        LOGGER.debug('received(%s) << %s', self.name, data)
+        return data
 
     def _send_and_recv(self, cmd: Union[str, bytes]) -> List[str]:
         """
@@ -170,33 +168,45 @@ class Interface(object):
         """
         self._send(cmd)
         resp = self._recv()
-        return resp.split('\n')
+        return resp.split(b'\n')
 
     def ping(self) -> None:
-        resp = self._send_and_recv('PING')
-        assert resp == ['PONG'], 'Did not receive proper reply'
+        resp = self._send_and_recv(b'PING')
+        assert resp == [b'PONG'], 'Did not receive proper reply'
 
     def status(self) -> InterfaceStatus:
-        resp = self._send_and_recv('STATUS')
-        status = {}
-        for l in resp:
-            k, v = l.split('=')
-            status[k] = v
-        if 'wpa_state' in status:
-            status['wpa_state'] = STATUS_CONSTS[status['wpa_state']]
-        return InterfaceStatus(**status)
+        status = InterfaceStatus.deserialize(self._send_and_recv('STATUS'))
+        LOGGER.info('Interface status: %s', status)
+        return status
 
     def scan(self) -> None:
-        self._send('SCAN')
+        LOGGER.info('Scanning')
+        self._send(b'SCAN')
 
     def results(self):
-        networks = []
-        for l in self._send_and_recv('SCAN_RESULTS'):
-            networks.append(Network.deserialize(l))
+        networks = deserialize_networks(self._send_and_recv(b'SCAN_RESULTS'))
+        for network in networks:
+            LOGGER.info('Found network: %s', network)
         return networks
+
+    def add_network(self, network: Network) -> None:
+        pass
+
+    def networks(self) -> List[Network]:
+        pass
+
+    def del_network(self, network: Network) -> None:
+        self._send(b'REMOVE_NETWORK %s' % network.id)
+
+    def clear_networks(self) -> None:
+        LOGGER.info('Removing all networks')
+        self._send(b'REMOVE_NETWORK all')
 
     def connect(self, network: Network):
         pass
+
+    def disconnect(self) -> None:
+        self._send(b'DISCONNECT')
 
 
 class Control(object):
@@ -222,6 +232,11 @@ class Control(object):
             if iface.name == name:
                 return iface
         raise ValueError('Invalid interface name: %s' % name)
+
+    def interface_names(self):
+        return [
+            interface.name for interface in self.interfaces
+        ]
 
     @property
     def interfaces(self) -> List[Interface]:
