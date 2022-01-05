@@ -10,7 +10,6 @@ pylint = "*"
 coverage = "*"
 coveralls = "*"
 mock = "*"
-faker = "*"
 
 [requires]
 python_version = "3"

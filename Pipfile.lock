@@ -1,11 +1,11 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "21009896fa97b8d8d40d7de3aa22e12c3379b93636a440ccdca38aa832929457"
+            "sha256": "e8ff64c27ed8b1176aebdfe3d7e819ad4af58ef10a71398ca87a3d73b641b658"
         },
         "pipfile-spec": 6,
         "requires": {
-            "python_version": "3.9"
+            "python_version": "3"
         },
         "sources": [
             {
@@ -107,14 +107,6 @@
             ],
             "version": "==0.6.2"
         },
-        "faker": {
-            "hashes": [
-                "sha256:89c359e153f6a27820ff1d491e851018064dd65731f7894e226f93e2aa980655",
-                "sha256:ee29deb5174a8bd2e3a1be2f43d9505201d267d383a97ebc67715d12bb386e47"
-            ],
-            "index": "pypi",
-            "version": "==11.1.0"
-        },
         "idna": {
             "hashes": [
                 "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff",
@@ -205,14 +197,6 @@
             "index": "pypi",
             "version": "==2.12.2"
         },
-        "python-dateutil": {
-            "hashes": [
-                "sha256:0123cacc1627ae19ddf3c27a5de5bd67ee4586fbdd6440d9748f8abb483d3e86",
-                "sha256:961d03dc3453ebbc59dbdea9e4e11c5651520a876d0f4db161e8674aae935da9"
-            ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
-            "version": "==2.8.2"
-        },
         "requests": {
             "hashes": [
                 "sha256:8e5643905bf20a308e25e4c1dd379117c09000bf8a82ebccc462cfb1b34a16b5",
@@ -228,21 +212,6 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==60.2.0"
-        },
-        "six": {
-            "hashes": [
-                "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
-                "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"
-            ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
-            "version": "==1.16.0"
-        },
-        "text-unidecode": {
-            "hashes": [
-                "sha256:1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8",
-                "sha256:bad6603bb14d279193107714b288be206cac565dfa49aa5b105294dd5c4aab93"
-            ],
-            "version": "==1.3"
         },
         "toml": {
             "hashes": [

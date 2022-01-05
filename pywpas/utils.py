@@ -15,6 +15,14 @@ def safe_decode(val):
         return val
 
 
+def safe_encode(val):
+    "Try to encode str to bytes"
+    try:
+        return val.encode('utf-8')
+    except AttributeError:
+        return val
+
+
 def tempnam(dir: str, prefix: str='') -> str:  # pylint: disable=redefined-builtin
     """
     Utility function.

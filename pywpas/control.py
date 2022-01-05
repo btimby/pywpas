@@ -34,12 +34,9 @@ class Control:
             iface.close()
         self._interfaces = None
 
-    def interface(self, name: str) -> Interface:
+    def interface(self, name: str, **kwargs) -> Interface:
         "Get specific interface"
-        for iface in self.interfaces:
-            if iface.name == name:
-                return iface
-        raise ValueError(f'Invalid interface name: {name}')
+        return Interface(self, name, **kwargs)
 
     def interface_names(self):
         "List of interface names"

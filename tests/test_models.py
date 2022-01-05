@@ -35,6 +35,12 @@ SCAN_RESULTS = b'bssid / frequency / signal level / flags / ssid\n' \
 class NetworkTestCase(TestCase):
     def test_deserialize_networks(self):
         networks = deserialize_networks(SCAN_RESULTS.split(b'\n'))
+        self.assertEqual(11, len(networks))
+        self.assertEqual(
+            'bssid=08:02:8e:9c:9d:15, frequency=2452, signal_level=-36, flags=[WPA2-PSK-CCMP][ESS], ssid=NachoWIFI',
+            str(networks[0]))
 
     def test_deserialize_interfacestatus(self):
-        InterfaceStatus.deserialize(INTERFACE_STATUS.split(b'\n'))
+        status = InterfaceStatus.deserialize(INTERFACE_STATUS.split(b'\n'))
+        self.assertEqual('station', status.mode)
+        self.assertEqual('wpa_state=COMPLETED', str(status))

@@ -4,7 +4,6 @@
 from dataclasses import dataclass
 from typing import List
 
-from .const import STATUS_CONSTS
 from .utils import safe_decode
 
 
@@ -35,22 +34,18 @@ class InterfaceStatus:
         for line in data:
             key, val = line.split(b'=')
             kwargs[safe_decode(key)] = safe_decode(val)
-        kwargs['wpa_state'] = STATUS_CONSTS[kwargs['wpa_state'].lower()]
         kwargs['frequency'] = int(kwargs.pop('freq'))
         return InterfaceStatus(**kwargs)
-
-    def serialize(self):
-        "Serialize interface status to wpa_supplicant form"
 
 
 @dataclass
 class Network:
     "Represents a wifi network"
-    bssid: str
-    frequency: int
-    signal_level: int
-    flags: str
-    ssid: str
+    bssid: str = None
+    frequency: int = None
+    signal_level: int = None
+    flags: str = None
+    ssid: str = None
 
     def __str__(self):
         return f'bssid={self.bssid}, frequency={self.frequency}, ' \
@@ -74,12 +69,6 @@ class Network:
             kwargs['ssid'] = None
         return Network(**kwargs)
 
-    def serialize(self):
-        "Serialize network into wpa_supplicant form"
-        return '\t'.join((
-            self.bssid, self.frequency, self.signal_level, self.flags, self.ssid
-        )).encode('utf-8')
-
 
 def deserialize_networks(lines: str) -> List[Network]:
     "Convert wpa_supplicant form of network list into objects"
@@ -87,10 +76,3 @@ def deserialize_networks(lines: str) -> List[Network]:
     return [
         Network.deserialize(header, l) for l in lines[1:]
     ]
-
-
-def serialize_networks(networks):
-    "Convert list of networks into wpa_supplicant form"
-    header = b'bssid / frequency / signal level / flags / ssid\n'
-    networks = b'\n'.join([network.serialize() for network in networks])
-    return header + networks

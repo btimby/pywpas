@@ -11,7 +11,7 @@ from select import select
 from typing import List, Union
 from os.path import join as pathjoin
 
-from .utils import tempnam, is_sock
+from .utils import tempnam, is_sock, safe_encode
 from .models import InterfaceStatus, Network, deserialize_networks
 
 
@@ -103,10 +103,10 @@ class Interface:
         self._name = name
         self._send_timeout = send_timeout
         self._recv_timeout = recv_timeout
+        self._connection = None
         self._server_path = pathjoin(self._control._sock_path, self.name)
         assert is_sock(self._server_path), 'Not a valid interface'
         self._client_path = None
-        self._connection = None
 
     def __del__(self):
         self.close()
@@ -154,13 +154,7 @@ class Interface:
         Accepts a string or bytes.
         """
         self._ensure_connection()
-        try:
-            cmd = cmd.encode('utf-8')
-        except AttributeError:
-            pass
-        if self._connection not in select([], [self._connection], [],
-                                          self._send_timeout)[1]:
-            raise TimeoutError()
+        cmd = safe_encode(cmd)
         LOGGER.debug('sending(%s) >> %s', self.name, cmd)
         self._connection.send(cmd)
 
@@ -224,11 +218,11 @@ class Interface:
     def networks(self) -> List[Network]:
         "List network profiles"
 
-    def del_network(self, network: Network) -> None:
-        "Delete given network profile"
-        self._send(b'REMOVE_NETWORK %s' % network.id)
+    def remove_network(self, network: Network) -> None:
+        "Remove given network profile"
+        self._send(b'REMOVE_NETWORK %s' % safe_encode(network.ssid))
 
-    def clear_networks(self) -> None:
+    def remove_networks(self) -> None:
         "Delete all network profiles"
         LOGGER.info('Removing all networks')
         self._send(b'REMOVE_NETWORK all')
@@ -240,7 +234,7 @@ class Interface:
         "Disconnect interface"
         self._send(b'DISCONNECT')
 
-    def config_write(self):
+    def save_config(self):
         "Save running config to file"
         self._send('SAVE_CONFIG')
 
