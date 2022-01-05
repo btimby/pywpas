@@ -4,12 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-coveralls = "*"
-pylint = "*"
-coverage = "*"
-mock = "*"
 
 [dev-packages]
+pylint = "*"
+coverage = "*"
+coveralls = "*"
+mock = "*"
+faker = "*"
 
 [requires]
 python_version = "3.9"
