@@ -23,7 +23,6 @@ jobs:
       - name: Install dependencies
         run: |
           pipenv install --dev --skip-lock
-          pip install --timeout=30 -q -e .
 
       - name: Run tests
         run: make ci
