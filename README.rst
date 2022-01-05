@@ -8,7 +8,7 @@
     :target: https://badge.fury.io/py/pywpas
 
 pywpas
-==================
+======
 
 A python library to control wpa_supplicant via it's control socket.
 
@@ -17,7 +17,8 @@ Installation
 
 ``pip install pywpas``
 
-Example:
+Example
+-------
 
 .. code-block:: python
 
@@ -47,9 +48,20 @@ Example:
     for network in scan_results:
         print(network.ssid, network.signal_level)
 
-    # You can connect to a network:
+    # You can connect to a network (implictly adds a profile):
     interface.connect(scan_results[0])
+    # Write the network to the wpa_supplicant.conf file:
+    interface.save_config()
+    # Then disconnect...
     interface.disconnect()
+    # and remove the network:
+    interface.del_network(scan_results[0])
+    interface.save_config()
+
+    # You can also add a profile (without connecting):
+    interface.add_network(scan_results[0])
+    # And save it:
+    interface.save_config()
 
     # You can define a network and connect to it:
     network = pywpas.Network(ssid='FOOBAR', ...)
@@ -58,10 +70,13 @@ Example:
 
     # There is a high-level scan function, it will invoke callback
     # with each unique network found during the scan timeout duration:
-    pywpas.scan(interface, lambda network: print(network.ssid), timeout=30.0)
+    scan = interface.background_scan(lambda network: print(network.ssid),
+                                     timeout=30.0)
+    time.sleep(5.0)
+    scan.stop()
 
-wpa_supplicant
---------------
+wpa_supplicant configuration
+----------------------------
 
 You must configure wpa_supplicant to open a control socket. Optionally you can
 enable config file writing.
@@ -70,6 +85,9 @@ enable config file writing.
 
     ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=nobody
     update_config=1
+
+Event with an emtpy configuation (no networks) you can use this library to add
+networks, connect to networks and save the profiles to the configuration file.
 
 Development
 -----------
