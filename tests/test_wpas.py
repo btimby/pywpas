@@ -10,7 +10,7 @@ from unittest import TestCase, mock
 
 from faker import Faker
 
-from pywpas import Control, scan
+from pywpas import Control
 from pywpas.control import tempnam
 from pywpas.const import STATUS_CONNECTED
 from pywpas.models import Network
@@ -90,9 +90,11 @@ class ControlTestCase(TestCase):
 
     def test_scan(self):
         networks = []
-        scan(self.client, lambda x: networks.append(x), timeout=5.0)
-        time.sleep(0.1)
+        scan = self.client.background_scan(lambda x: networks.append(x))
+        time.sleep(0.2)
         self.assertEqual(self.server.last_command, b'SCAN')
         time.sleep(4.1)
         self.assertEqual(self.server.last_command, b'SCAN_RESULTS')
         self.assertEqual(4, len(networks))
+        scan.stop()
+        self.assertFalse(scan._running)

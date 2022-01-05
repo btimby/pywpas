@@ -1,1 +1,2 @@
-from .control import Control, scan
+from .control import Control
+from .models import Network

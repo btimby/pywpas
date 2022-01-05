@@ -21,7 +21,44 @@ Example:
 
 .. code-block:: python
 
+    import time
     import pywpas
+    # sock_path below is the default and can be omitted.
+    ctrl = pywpas.Control(sock_path='/var/run/wpa_supplicant)
+
+    # You can get a list of interface names:
+    interface_names = ctrl.interface_names()
+    print(interface_names)
+
+    # You can iterate over instances of the Interface class:
+    for interface in ctrl.interfaces:
+        print(interface.name)
+    
+    # You can get a specific Interface instance by name:
+    interface = ctrl.interface(interface_names[0])
+    print(interface.status())
+
+    # You can scan for networks available on an interface:
+    interface.scan()
+    # You might wait a few seconds...
+    time.sleep(5.0)
+    scan_results = interface.results()
+
+    for network in scan_results:
+        print(network.ssid, network.signal_level)
+
+    # You can connect to a network:
+    interface.connect(scan_results[0])
+    interface.disconnect()
+
+    # You can define a network and connect to it:
+    network = pywpas.Network(ssid='FOOBAR', ...)
+    interface.connect(network)
+    interface.disconnect()
+
+    # There is a high-level scan function, it will invoke callback
+    # with each unique network found during the scan timeout duration:
+    pywpas.scan(interface, lambda network: print(network.ssid), timeout=30.0)
 
 wpa_supplicant
 --------------
