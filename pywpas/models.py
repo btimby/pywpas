@@ -1,3 +1,6 @@
+"Representation of wpa_supplicant constructs"
+# pylint: disable=too-many-instance-attributes
+
 from dataclasses import dataclass
 from typing import List
 
@@ -7,10 +10,11 @@ from .utils import safe_decode
 
 @dataclass
 class InterfaceStatus:
+    "Represents a wifi interface status"
     bssibd: str
     frequency: int
     ssid: str
-    id: str
+    id: str  # pylint: disable=invalid-name
     mode: str
     wpa_state: str
     pairwise_cipher: str
@@ -26,20 +30,22 @@ class InterfaceStatus:
 
     @staticmethod
     def deserialize(data):
+        "Deserialize wpa_supplicant form of interface status to object"
         kwargs = {}
-        for l in data:
-            k, v = l.split(b'=')
-            kwargs[safe_decode(k)] = safe_decode(v)
+        for line in data:
+            key, val = line.split(b'=')
+            kwargs[safe_decode(key)] = safe_decode(val)
         kwargs['wpa_state'] = STATUS_CONSTS[kwargs['wpa_state'].lower()]
         kwargs['frequency'] = int(kwargs.pop('freq'))
         return InterfaceStatus(**kwargs)
 
     def serialize(self):
-        pass
+        "Serialize interface status to wpa_supplicant form"
 
 
 @dataclass
 class Network:
+    "Represents a wifi network"
     bssid: str
     frequency: int
     signal_level: int
@@ -47,12 +53,13 @@ class Network:
     ssid: str
 
     def __str__(self):
-        key_mgmt = '|'.join(self.key_mgmt)
-        return f'bssid={self.bssid}, freq={self.freq}, signal={self.signal},' \
-               f' ssid={self.ssid}, key_mgmt={key_mgmt}, auth={auth}'
+        return f'bssid={self.bssid}, frequency={self.frequency}, ' \
+               f'signal_level={self.signal_level}, flags={self.flags}, ' \
+               f'ssid={self.ssid}'
 
     @staticmethod
     def deserialize(header, network):
+        "Deserialize wpa_supplicant form of network into object"
         kwargs = {}
         fields = safe_decode(header).split(' / ')
         fields = map(lambda x: x.strip().replace(' ', '_'), fields)
@@ -68,13 +75,14 @@ class Network:
         return Network(**kwargs)
 
     def serialize(self):
-        key_mgmt = ','.join(self.key_mgmt)
-        data = f'\n{self.bssid}\t{self.freq}\t{self.signal}\t' \
-               f'{key_mgmt}\t{self.ssid}'
-        return data.encode('utf-8')
+        "Serialize network into wpa_supplicant form"
+        return '\t'.join((
+            self.bssid, self.frequency, self.signal_level, self.flags, self.ssid
+        )).encode('utf-8')
 
 
 def deserialize_networks(lines: str) -> List[Network]:
+    "Convert wpa_supplicant form of network list into objects"
     header = lines[0]
     return [
         Network.deserialize(header, l) for l in lines[1:]
@@ -82,6 +90,7 @@ def deserialize_networks(lines: str) -> List[Network]:
 
 
 def serialize_networks(networks):
+    "Convert list of networks into wpa_supplicant form"
     header = b'bssid / frequency / signal level / flags / ssid\n'
     networks = b'\n'.join([network.serialize() for network in networks])
     return header + networks

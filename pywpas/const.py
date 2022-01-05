@@ -1,3 +1,5 @@
+"Some constants for dealing with wpa_supplicant values"
+
 STATUS_CONNECTED = 'connected'
 STATUS_CONNECTING = 'connecting'
 STATUS_INACTIVE = 'inactive'

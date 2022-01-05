@@ -8,6 +8,7 @@ deps: .venv
 .PHONY: test
 test: deps
 	pipenv run coverage run -m unittest tests
+	pipenv run coverage report -m
 
 .PHONY: lint
 lint: deps

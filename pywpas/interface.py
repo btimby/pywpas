@@ -1,3 +1,5 @@
+"Communication with wpa_supplicant interface"
+
 import os
 import time
 import tempfile
@@ -22,7 +24,7 @@ SCAN_TIMEOUT = 30.0
 RECV_BUFFER_SIZE = 4096
 
 
-class _BackgroundScan(object):
+class _BackgroundScan:
     """
     High-level scan.
 
@@ -34,6 +36,7 @@ class _BackgroundScan(object):
         self._t = None
 
     def _scan(self, callback, timeout):
+        "Background scan thread entry point"
         networks, started = set(), time.time()
         self._interface.scan()
         while self._running and time.time() - started < timeout:
@@ -44,6 +47,7 @@ class _BackgroundScan(object):
                     callback(network)
 
     def start(self, callback: callable, timeout: float=SCAN_TIMEOUT):
+        "Start background scan"
         assert callable(callback), 'Callback must be callable'
         self._running = True
         self._t = threading.Thread(
@@ -51,6 +55,7 @@ class _BackgroundScan(object):
         self._t.start()
 
     def stop(self):
+        "Stop background scan"
         if self._t is None:
             return
         self._running = False
@@ -87,7 +92,7 @@ class _BackgroundScan(object):
 # WPS_ER_START WPS_NFC WPS_NFC_CONFIG_TOKEN WPS_NFC_TAG_READ WPS_NFC_TOKEN
 # WPS_PBC WPS_PIN WPS_REG
 #
-class Interface(object):
+class Interface:
     """
     Handle a unix:// datagram connection for a given interface.
     """
@@ -108,10 +113,12 @@ class Interface(object):
 
     @property
     def name(self):
+        "This interface's name"
         return self._name
 
     @property
     def control(self) -> 'Control':
+        "The parent object which gives access to additional interfaces"
         return self._control
 
     def close(self) -> None:
@@ -125,9 +132,8 @@ class Interface(object):
         try:
             os.remove(self._client_path)
         except FileNotFoundError:
-            LOGGER.warn('Error deleting client socket at: %s',
+            LOGGER.warning('Error deleting client socket at: %s',
                         self._client_path)
-            pass
         self._client_path = None
 
     def _ensure_connection(self):
@@ -183,51 +189,61 @@ class Interface(object):
         return resp.split(b'\n')
 
     def ping(self) -> None:
+        "Connection test"
         resp = self._send_and_recv(b'PING')
         assert resp == [b'PONG'], 'Did not receive proper reply'
 
     def status(self) -> InterfaceStatus:
+        "Get interface status"
         status = InterfaceStatus.deserialize(self._send_and_recv('STATUS'))
         LOGGER.info('Interface status: %s', status)
         return status
 
     def scan(self) -> None:
+        "Start scanning"
         LOGGER.info('Scanning')
         self._send(b'SCAN')
 
     def background_scan(self, callback: callable,
                         timeout: float=SCAN_TIMEOUT) -> None:
+        "Perform background scan on thread"
         scan = _BackgroundScan(self)
         scan.start(callback, timeout)
         return scan
 
     def results(self):
+        "Return scan results"
         networks = deserialize_networks(self._send_and_recv(b'SCAN_RESULTS'))
         for network in networks:
             LOGGER.info('Found network: %s', network)
         return networks
 
     def add_network(self, network: Network) -> None:
-        pass
+        "Add network profile"
 
     def networks(self) -> List[Network]:
-        pass
+        "List network profiles"
 
     def del_network(self, network: Network) -> None:
+        "Delete given network profile"
         self._send(b'REMOVE_NETWORK %s' % network.id)
 
     def clear_networks(self) -> None:
+        "Delete all network profiles"
         LOGGER.info('Removing all networks')
         self._send(b'REMOVE_NETWORK all')
 
     def connect(self, network: Network):
-        pass
+        "connect interface to given network"
 
     def disconnect(self) -> None:
+        "Disconnect interface"
         self._send(b'DISCONNECT')
 
     def config_write(self):
+        "Save running config to file"
         self._send('SAVE_CONFIG')
 
     def stop_ap(self):
+        "Stop access point"
         self._send('STOP_AP')

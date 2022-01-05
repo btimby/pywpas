@@ -1,19 +1,21 @@
+"Utility functions"
+
 import os
 import tempfile
 import stat
 
-from functools import wraps
-from os.path import dirname, join as pathjoin
+from os.path import join as pathjoin
 
 
-def safe_decode(b):
+def safe_decode(val):
+    "Try to decode bytes to str"
     try:
-        return b.decode('utf-8')
+        return val.decode('utf-8')
     except AttributeError:
-        return b
+        return val
 
 
-def tempnam(dir: str, prefix: str='') -> str:
+def tempnam(dir: str, prefix: str='') -> str:  # pylint: disable=redefined-builtin
     """
     Utility function.
 
@@ -21,15 +23,17 @@ def tempnam(dir: str, prefix: str='') -> str:
     it creates a temporary path (that does not exist). For use as a socket
     address.
     """
-    fd, path = tempfile.mkstemp(dir=dir, prefix=prefix)
+    fd, path = tempfile.mkstemp(dir=dir, prefix=prefix)  # pylint: disable=invalid-name
     os.close(fd)
     os.remove(path)
     return path
 
 
 def is_sock(path):
+    "Checks if given path is a socket"
     return stat.S_ISSOCK(os.stat(path).st_mode)
 
 
-def find_sockets(dir):
-    return [path for path in os.listdir(dir) if is_sock(pathjoin(dir, path))]
+def find_sockets(path):
+    "Finds sockets in given directory"
+    return [n for n in os.listdir(path) if is_sock(pathjoin(path, n))]
