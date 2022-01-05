@@ -42,11 +42,19 @@ class MockServer(object):
                 self._commands.append(cmd)
                 self.command_received.set()
                 if cmd == b'PING':
-                    self._sock.sendto(bytearray('PONG', 'utf-8'), address)
+                    self._sock.sendto(b'PONG', address)
                 elif cmd == b'STATUS':
                     self._sock.sendto(INTERFACE_STATUS, address)
                 elif cmd == b'SCAN_RESULTS':
                     self._sock.sendto(next(networks), address)
+                elif cmd == b'ADD_NETWORK':
+                    self._sock.sendto(b'1', address)
+                elif cmd == b'LIST_NETWORKS':
+                    self._sock.sendto(b'1', address)
+                elif cmd == b'SELECT_NETWORK 1':
+                    self._sock.sendto(b'foobar', address)
+                elif cmd.startswith(b'GET_NETWORK 1'):
+                    self._sock.sendto(b'foobar', address)
 
     @property
     def last_command(self):
@@ -94,9 +102,21 @@ class InterfaceTestCase(TestCase):
         del self.client
         self.server.stop()
 
-    def assertLastCommand(self, command):
-        self.server.command_received.wait(timeout=1.0)
-        self.assertEqual(command, self.server.last_command)
+    def assertCommand(self, command):
+        # Has command already been received?
+        for cmd in self.server._commands:
+            if cmd == command:
+                return True
+        # If not, wait for it to arrive.
+        self.server.command_received.clear()
+        while True:
+            if not self.server.command_received.wait(timeout=1.0):
+                # We timed out, assertion failed.
+                raise AssertionError(f'Command {command} not received')
+            # clear so we can for next command.
+            self.server.command_received.clear()
+            if command == self.server.last_command:
+                return True
 
     def test_control(self):
         self.assertIsInstance(self.client.control, Control)
@@ -115,34 +135,47 @@ class InterfaceTestCase(TestCase):
         networks = []
         scan = self.client.background_scan(lambda x: networks.append(x))
         time.sleep(0.2)
-        self.assertLastCommand(b'SCAN')
+        self.assertCommand(b'SCAN')
         time.sleep(4.1)
-        self.assertLastCommand(b'SCAN_RESULTS')
+        self.assertCommand(b'SCAN_RESULTS')
         self.assertEqual(4, len(networks))
         scan.stop()
         self.assertFalse(scan._running)
         # Should be fine to call it again.
         scan.stop()
 
+    def test_add_network(self):
+        self.client.add_network(Network(psk='foobar'))
+        self.assertCommand(b'SET_NETWORK 1 psk foobar')
+
+    def test_connect(self):
+        self.client.connect(Network(psk='foobar'))
+        self.assertCommand(b'SELECT_NETWORK 1')
+
+    def test_list_networks(self):
+        networks = self.client.list_networks()
+        self.assertCommand(b'GET_NETWORK 1 pairwise')
+        self.assertEqual(1, len(networks))
+
     def test_remove_network(self):
-        self.client.remove_network(Network(ssid='foobar'))
-        self.assertLastCommand(b'REMOVE_NETWORK foobar')
+        self.client.remove_network(Network(id=1))
+        self.assertCommand(b'REMOVE_NETWORK 1')
 
     def test_remove_networks(self):
         self.client.remove_networks()
-        self.assertLastCommand(b'REMOVE_NETWORK all')
+        self.assertCommand(b'REMOVE_NETWORK all')
 
     def test_disconnect(self):
         self.client.disconnect()
-        self.assertLastCommand(b'DISCONNECT')
+        self.assertCommand(b'DISCONNECT')
 
     def test_save_config(self):
         self.client.save_config()
-        self.assertLastCommand(b'SAVE_CONFIG')
+        self.assertCommand(b'SAVE_CONFIG')
 
     def test_stop_ap(self):
         self.client.stop_ap()
-        self.assertLastCommand(b'STOP_AP')
+        self.assertCommand(b'STOP_AP')
 
 
 class TimeoutTestCase(TestCase):

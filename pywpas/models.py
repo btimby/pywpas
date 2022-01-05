@@ -41,16 +41,22 @@ class InterfaceStatus:
 @dataclass
 class Network:
     "Represents a wifi network"
+    id: int = None  # pylint: disable=invalid-name
     bssid: str = None
     frequency: int = None
     signal_level: int = None
     flags: str = None
     ssid: str = None
+    key_mgmt: str = None
+    ciphers: str = None
+    psk: str = None
+    proto: str = None
 
     def __str__(self):
         return f'bssid={self.bssid}, frequency={self.frequency}, ' \
                f'signal_level={self.signal_level}, flags={self.flags}, ' \
-               f'ssid={self.ssid}'
+               f'ssid={self.ssid}, key_mgmt={self.key_mgmt}, ' \
+               f'ciphers={self.ciphers}'
 
     @staticmethod
     def deserialize(header, network):
