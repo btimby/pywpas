@@ -11,7 +11,7 @@ from unittest import TestCase, mock
 from faker import Faker
 
 from pywpas import Control
-from pywpas.control import tempnam
+from pywpas.utils import tempnam
 from pywpas.const import STATUS_CONNECTED
 from pywpas.models import Network
 
