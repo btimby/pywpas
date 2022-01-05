@@ -55,7 +55,9 @@ Example
     # Then disconnect...
     interface.disconnect()
     # and remove the network:
-    interface.del_network(scan_results[0])
+    interface.remove_network(scan_results[0])
+    # Or remove ALL networks:
+    interface.remove_networks()
     interface.save_config()
 
     # You can also add a profile (without connecting):
