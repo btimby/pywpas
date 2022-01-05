@@ -117,7 +117,7 @@ class InterfaceTestCase(TestCase):
         time.sleep(0.2)
         self.assertLastCommand(b'SCAN')
         time.sleep(4.1)
-        self.assertEqual(self.server.last_command, b'SCAN_RESULTS')
+        self.assertLastCommand(b'SCAN_RESULTS')
         self.assertEqual(4, len(networks))
         scan.stop()
         self.assertFalse(scan._running)
