@@ -13,18 +13,6 @@ def safe_decode(b):
         return b
 
 
-def ensure_connection(f):
-    """
-    Decorator that ensures the connection is established before executing a
-    function's body.
-    """
-    @wraps(f)
-    def inner(self, *args, **kwargs):
-        self._ensure_connection()
-        return f(self, *args, **kwargs)
-    return inner
-
-
 def tempnam(dir: str, prefix: str='') -> str:
     """
     Utility function.

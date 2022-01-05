@@ -9,7 +9,7 @@ from select import select
 from typing import List, Union
 from os.path import join as pathjoin
 
-from .utils import ensure_connection, tempnam, is_sock
+from .utils import tempnam, is_sock
 from .models import InterfaceStatus, Network, deserialize_networks
 
 
@@ -141,13 +141,13 @@ class Interface(object):
         self._connection.bind(self._client_path)
         self._connection.connect(self._server_path)
 
-    @ensure_connection
     def _send(self, cmd: Union[str, bytes]) -> None:
         """
         Send data to wpa_supplicant.
 
         Accepts a string or bytes.
         """
+        self._ensure_connection()
         try:
             cmd = cmd.encode('utf-8')
         except AttributeError:
