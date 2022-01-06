@@ -3,16 +3,15 @@
 
 import os
 import time
-import tempfile
 import threading
 import socket
 import logging
 
 from select import select
 from typing import List, Union
-from os.path import join as pathjoin
+from os.path import join as pathjoin, dirname
 
-from .utils import tempnam, is_sock, safe_encode
+from .utils import tempnam, is_sock, safe_encode, SOCKET_PREFIX
 from .models import InterfaceStatus, Network, deserialize_networks
 
 
@@ -42,7 +41,7 @@ class _BackgroundScan:
         self._interface.scan()
         while self._running and time.time() - started < timeout:
             time.sleep(1.0)
-            for network in self._interface.results():
+            for network in self._interface.scan_results():
                 if network.ssid not in networks:
                     networks.add(network.ssid)
                     callback(network)
@@ -149,7 +148,7 @@ class Interface:
         """
         if self._connection is not None:
             return
-        self._client_path = tempnam(tempfile.tempdir, 'pywpas')
+        self._client_path = tempnam(dirname(self._server_path), SOCKET_PREFIX)
         self._connection = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         self._connection.bind(self._client_path)
         self._connection.connect(self._server_path)
@@ -214,7 +213,7 @@ class Interface:
         scan.start(callback, timeout)
         return scan
 
-    def results(self):
+    def scan_results(self):
         "Return scan results"
         LOGGER.info('Retrieving scan results')
         networks = deserialize_networks(self._send_and_recv(b'SCAN_RESULTS'))

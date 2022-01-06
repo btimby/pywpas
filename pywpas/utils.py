@@ -8,6 +8,8 @@ import logging
 from os.path import join as pathjoin
 
 
+SOCKET_PREFIX = 'pywpas'
+
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler())
 
@@ -51,4 +53,8 @@ def is_sock(path):
 def find_sockets(path):
     "Finds sockets in given directory"
     LOGGER.info('Searching directory %s for sockets', path)
-    return [n for n in os.listdir(path) if is_sock(pathjoin(path, n))]
+    # Filter out non-sockets, and other potential client sockets.
+    return [
+        n for n in os.listdir(path) \
+            if is_sock(pathjoin(path, n)) and not n.startswith(SOCKET_PREFIX)
+    ]
