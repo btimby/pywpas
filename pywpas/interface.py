@@ -1,4 +1,4 @@
-"Communication with wpa_supplicant interface"
+"Communication with wpa_supplicant interface."
 # pylint: disable=too-many-instance-attributes
 
 import os

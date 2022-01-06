@@ -1,4 +1,4 @@
-"Representation of wpa_supplicant constructs"
+"Representation of wpa_supplicant constructs."
 # pylint: disable=too-many-instance-attributes
 
 from dataclasses import dataclass
@@ -9,7 +9,7 @@ from .utils import safe_decode
 
 @dataclass
 class InterfaceStatus:
-    "Represents a wifi interface status"
+    "Represents a wifi interface status."
     bssibd: str
     frequency: int
     ssid: str
@@ -29,7 +29,7 @@ class InterfaceStatus:
 
     @staticmethod
     def deserialize(data):
-        "Deserialize wpa_supplicant form of interface status to object"
+        "Deserialize wpa_supplicant form of interface status to object."
         kwargs = {}
         for line in data:
             key, val = line.split(b'=')
@@ -69,7 +69,7 @@ class Scanned:
 
     @staticmethod
     def deserialize(header, network):
-        "Deserialize wpa_supplicant form of network into object"
+        "Deserialize wpa_supplicant form of network into object."
         kwargs = {}
         fields = safe_decode(header).split(' / ')
         fields = map(lambda x: x.strip().replace(' ', '_'), fields)
@@ -85,11 +85,12 @@ class Scanned:
         return Scanned(**kwargs)
 
     def as_profile(self, psk=None) -> Profile:
+        "Convert to profile for connecting."
         return Profile(ssid=self.ssid, psk=psk)
 
 
 def deserialize_scanned(lines: str) -> List[Scanned]:
-    "Convert wpa_supplicant form of network list into objects"
+    "Convert wpa_supplicant form of network list into objects."
     header = lines[0]
     return [
         Scanned.deserialize(header, l) for l in lines[1:]
