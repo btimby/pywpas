@@ -10,7 +10,7 @@ from unittest import TestCase, mock
 
 from pywpas import Control
 from pywpas.utils import tempnam
-from pywpas.models import Network
+from pywpas.models import Profile
 
 from .test_models import INTERFACE_STATUS, SCAN_RESULTS
 
@@ -145,11 +145,11 @@ class InterfaceTestCase(TestCase):
         scan.stop()
 
     def test_add_network(self):
-        self.client.add_network(Network(psk='foobar'))
+        self.client.add_network(Profile(psk='foobar'))
         self.assertCommand(b'SET_NETWORK 1 psk foobar')
 
     def test_connect(self):
-        self.client.connect(Network(psk='foobar'))
+        self.client.connect(Profile(psk='foobar'))
         self.assertCommand(b'SELECT_NETWORK 1')
 
     def test_list_networks(self):
@@ -158,7 +158,7 @@ class InterfaceTestCase(TestCase):
         self.assertEqual(1, len(networks))
 
     def test_remove_network(self):
-        self.client.remove_network(Network(id=1))
+        self.client.remove_network(Profile(id=1))
         self.assertCommand(b'REMOVE_NETWORK 1')
 
     def test_remove_networks(self):

@@ -12,7 +12,9 @@ from typing import List, Union
 from os.path import join as pathjoin, dirname
 
 from .utils import tempnam, is_sock, safe_encode, SOCKET_PREFIX
-from .models import InterfaceStatus, Network, deserialize_networks
+from .models import (
+    InterfaceStatus, Profile, deserialize_scanned,
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -36,7 +38,7 @@ class _BackgroundScan:
         self._t = None
 
     def _scan(self, callback, timeout):
-        "Background scan thread entry point"
+        "Background scan thread entry point."
         networks, started = set(), time.time()
         self._interface.scan()
         while self._running and time.time() - started < timeout:
@@ -47,7 +49,7 @@ class _BackgroundScan:
                     callback(network)
 
     def start(self, callback: callable, timeout: float=SCAN_TIMEOUT):
-        "Start background scan"
+        "Start background scan."
         assert callable(callback), 'Callback must be callable'
         self._running = True
         self._t = threading.Thread(
@@ -55,7 +57,7 @@ class _BackgroundScan:
         self._t.start()
 
     def stop(self):
-        "Stop background scan"
+        "Stop background scan."
         if self._t is None:
             return
         self._running = False
@@ -107,25 +109,31 @@ class Interface:
         self._server_path = pathjoin(self._control._sock_path, self.name)
         assert is_sock(self._server_path), 'Not a valid interface'
         self._client_path = None
-        self._networks = {}
+        self._scanned = {}
+        self._profiles = {}
 
     def __del__(self):
         self.close()
 
     @property
     def name(self):
-        "This interface's name"
+        "This interface's name."
         return self._name
 
     @property
     def control(self) -> 'Control':
-        "The parent object which gives access to additional interfaces"
+        "The parent object which gives access to additional interfaces."
         return self._control
 
     @property
-    def networks(self):
-        "Networks discovered by list_networks()"
-        return list(self._networks.values())
+    def profiles(self):
+        "Networks in wpa_supplicant.conf"
+        return list(self._profiles.values())
+
+    @property
+    def scanned(self):
+        "Networks found via scan()."
+        return list(self._scanned.values())
 
     def close(self) -> None:
         """
@@ -189,93 +197,98 @@ class Interface:
         return resp.split(b'\n')
 
     def ping(self) -> None:
-        "Connection test"
+        "Connection test."
         LOGGER.info('Pinging wpa_supplicant')
         resp = self._send_and_recv(b'PING')
         assert resp == [b'PONG'], 'Did not receive proper reply'
 
     def status(self) -> InterfaceStatus:
-        "Get interface status"
+        "Get interface status."
         LOGGER.info('Retrieving interface status')
         status = InterfaceStatus.deserialize(self._send_and_recv('STATUS'))
         return status
 
     def scan(self) -> None:
-        "Start scanning"
+        "Start scanning."
         LOGGER.info('Initiating scan')
         self._send(b'SCAN')
 
     def background_scan(self, callback: callable,
                         timeout: float=SCAN_TIMEOUT) -> None:
-        "Perform background scan on thread"
+        "Perform background scan on thread."
         LOGGER.info('Starting background scan')
         scan = _BackgroundScan(self)
         scan.start(callback, timeout)
         return scan
 
     def scan_results(self):
-        "Return scan results"
+        "Return scan results."
         LOGGER.info('Retrieving scan results')
-        networks = deserialize_networks(self._send_and_recv(b'SCAN_RESULTS'))
+        networks = deserialize_scanned(self._send_and_recv(b'SCAN_RESULTS'))
         for network in networks:
             LOGGER.info('Found network: %s', network)
-        return networks
+            self._scanned[network.ssid] = network
+        return self.scanned
 
-    def add_network(self, network: Network) -> None:
-        "Add network profile"
-        LOGGER.info('Adding network: %s', network.ssid)
-        network.id = int(self._send_and_recv(b'ADD_NETWORK')[0])
-        LOGGER.debug('Assigned id: %i', network.id)
-        self._send(f'SET_NETWORK {network.id} ssid {network.ssid}')
-        self._send(f'SET_NETWORK {network.id} key_mgmt {network.key_mgmt}')
-        self._send(f'SET_NETWORK {network.id} proto {network.proto}')
-        self._send(f'SET_NETWORK {network.id} psk {network.psk}')
-        self._networks[network.id] = network
+    def remove_results(self):
+        "Remove scan results."
+        self._scanned.clear()
 
-    def list_networks(self) -> List[Network]:
-        "List network profiles"
+    def add_network(self, profile: Profile) -> None:
+        "Add network profile."
+        LOGGER.info('Adding network: %s', profile.ssid)
+        profile.id = int(self._send_and_recv(b'ADD_NETWORK')[0])
+        LOGGER.debug('Assigned id: %i', profile.id)
+        self._send(f'SET_NETWORK {profile.id} ssid {profile.ssid}')
+        self._send(f'SET_NETWORK {profile.id} key_mgmt {profile.key_mgmt}')
+        self._send(f'SET_NETWORK {profile.id} proto {profile.proto}')
+        self._send(f'SET_NETWORK {profile.id} psk {profile.psk}')
+        self._profiles[profile.id] = profile
+
+    def list_networks(self) -> List[Profile]:
+        "List network profiles."
         LOGGER.info('Listing networks')
-        network_ids = map(int, self._send_and_recv(b'LIST_NETWORKS'))
-        LOGGER.debug('Received network ids: %s', network_ids)
-        for network_id in network_ids:
+        profile_ids = map(int, self._send_and_recv(b'LIST_NETWORKS'))
+        LOGGER.debug('Received network ids: %s', profile_ids)
+        for profile_id in profile_ids:
             kwargs = {}
-            kwargs['ssid'] = self._send_and_recv(f'GET_NETWORK {network_id} ssid')[0]
-            kwargs['key_mgmt'] = self._send_and_recv(f'GET_NETWORK {network_id} key_mgmt')[0]
-            kwargs['proto'] = self._send_and_recv(f'GET_NETWORK {network_id} proto')[0]
-            kwargs['ciphers'] = self._send_and_recv(f'GET_NETWORK {network_id} pairwise')[0]
-            self._networks[network_id] = Network(**kwargs)
-        return self.networks
+            kwargs['ssid'] = self._send_and_recv(f'GET_NETWORK {profile_id} ssid')[0]
+            kwargs['key_mgmt'] = self._send_and_recv(f'GET_NETWORK {profile_id} key_mgmt')[0]
+            kwargs['proto'] = self._send_and_recv(f'GET_NETWORK {profile_id} proto')[0]
+            kwargs['ciphers'] = self._send_and_recv(f'GET_NETWORK {profile_id} pairwise')[0]
+            self._profiles[profile_id] = Profile(**kwargs)
+        return self.profiles
 
-    def remove_network(self, network: Network) -> None:
-        "Remove given network profile"
-        LOGGER.info('Removing network profile: %s', network.ssid)
-        self._send(f'REMOVE_NETWORK {network.id}')
-        self._networks.pop(network.id, None)
+    def remove_network(self, profile: Profile) -> None:
+        "Remove given network profile."
+        LOGGER.info('Removing network profile: %s', profile.ssid)
+        self._send(f'REMOVE_NETWORK {profile.id}')
+        self._profiles.pop(profile.id, None)
 
     def remove_networks(self) -> None:
-        "Delete all network profiles"
-        LOGGER.info('Removing all networks')
+        "Delete all network profiles."
+        LOGGER.info('Removing all network profiles')
         self._send(b'REMOVE_NETWORK all')
-        self._networks.clear()
+        self._profiles.clear()
 
-    def connect(self, network: Network):
-        "connect interface to given network"
-        if network.id is None:
-            self.add_network(network)
-        LOGGER.info('Connecting to network: %s', network.ssid)
-        self._send_and_recv(f'SELECT_NETWORK {network.id}')
+    def connect(self, profile: Profile):
+        "connect interface to given network."
+        if profile.id is None:
+            self.add_network(profile)
+        LOGGER.info('Connecting to network: %s', profile.ssid)
+        self._send_and_recv(f'SELECT_NETWORK {profile.id}')
 
     def disconnect(self) -> None:
-        "Disconnect interface"
+        "Disconnect interface."
         LOGGER.info('Disconnecting')
         self._send(b'DISCONNECT')
 
     def save_config(self):
-        "Save running config to file"
+        "Save running config to file."
         LOGGER.info('Saving configuration')
         self._send(b'SAVE_CONFIG')
 
     def stop_ap(self):
-        "Stop access point"
+        "Stop access point."
         LOGGER.info('Stopping access point')
         self._send(b'STOP_AP')

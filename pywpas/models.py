@@ -39,24 +39,33 @@ class InterfaceStatus:
 
 
 @dataclass
-class Network:
-    "Represents a wifi network"
+class Profile:
+    "Represents a wifi network in wpa_supplicant config file."
     id: int = None  # pylint: disable=invalid-name
+    ssid: str = None
+    key_mgmt: str = None
+    proto: str = None
+    ciphers: str = None
+    psk: str = None
+
+    def __str__(self):
+        return f'id={self.id}, ssid={self.ssid}, key_mgmt={self.key_mgmt}, ' \
+               f'proto={self.proto}, ciphers={self.ciphers}, psk={self.psk}'
+
+
+@dataclass
+class Scanned:
+    "Represents a wifi network in wpa_supplicant config file."
     bssid: str = None
     frequency: int = None
     signal_level: int = None
     flags: str = None
     ssid: str = None
-    key_mgmt: str = None
-    ciphers: str = None
-    psk: str = None
-    proto: str = None
 
     def __str__(self):
         return f'bssid={self.bssid}, frequency={self.frequency}, ' \
                f'signal_level={self.signal_level}, flags={self.flags}, ' \
-               f'ssid={self.ssid}, key_mgmt={self.key_mgmt}, ' \
-               f'ciphers={self.ciphers}'
+               f'ssid={self.ssid}'
 
     @staticmethod
     def deserialize(header, network):
@@ -73,12 +82,15 @@ class Network:
         kwargs['frequency'] = int(kwargs['frequency'])
         if not kwargs['ssid']:
             kwargs['ssid'] = None
-        return Network(**kwargs)
+        return Scanned(**kwargs)
+
+    def as_profile(self, psk=None) -> Profile:
+        return Profile(ssid=self.ssid, psk=psk)
 
 
-def deserialize_networks(lines: str) -> List[Network]:
+def deserialize_scanned(lines: str) -> List[Scanned]:
     "Convert wpa_supplicant form of network list into objects"
     header = lines[0]
     return [
-        Network.deserialize(header, l) for l in lines[1:]
+        Scanned.deserialize(header, l) for l in lines[1:]
     ]
